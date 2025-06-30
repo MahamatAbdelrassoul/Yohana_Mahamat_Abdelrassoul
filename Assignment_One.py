@@ -1,126 +1,72 @@
-# Assignment One: Train RL agent to navigate to cross the road with action right, left, right
-
-
+# Assignment: Train RL agent to navigate to cross the road with action right, left, right
 # This script trains an RL agent using Q-learning to cross a road environment.
 # After training, it demonstrates the agent following the forced action sequence [right, left, right],
 # and displays the Q-table and agent's recommended actions at each step.
 
-import numpy as np
-import random
+# Import necessary library
+import numpy as  np
+import random 
+
 
 # Environment setup
-NUM_POSITIONS = 5  # Number of positions (states) on the road
-ACTIONS = ['left', 'right']  # Action space
-GOAL_POSITION = NUM_POSITIONS - 1  # Rightmost position is the goal
+road_length = 5  # The road will have 5 position 0, 4, our goal is to reach position 4
+actions = ['left', 'right']  #Agent can take left and right 1 right, 2, for left 
 
-# RL parameters
-LEARNING_RATE = 0.1
-DISCOUNT = 0.95
-EPISODES = 1000
-EPSILON = 1.0
-EPSILON_DECAY = 0.995
-EPSILON_MIN = 0.01
+# Q-table Initialization
+Q = np.zeros((road_length, len(actions)))  # Is the core of Q-learning which initialise Q table
 
-class RoadCrossingEnv:
-    def __init__(self):
-        self.reset()
-        
-    def reset(self):
-        self.state = 0  # Start from position 0
-        self.done = False
-        return self.state
-    
-    def step(self, action):
-        # Execute action
-        if action == 'left':
-            next_state = max(0, self.state - 1)
-        else:  # 'right'
-            next_state = min(NUM_POSITIONS - 1, self.state + 1)
-        
-        # Check if goal reached
-        if next_state == GOAL_POSITION:
-            reward = 10
-            self.done = True
+# Hyper parameters 
+episodes = 1000 # Number  of training interations, leads to better learning rates
+learning_rate = 0.8  # 0 , 1 Alpha learning rate, helps agent to adapt more quickly
+gamma = 0.9 # it will have a high rewards
+epsilon = 0.3 # helps the agent to discover news paths # exploration rates 
+
+# Training loop 
+for episode in range(episodes):
+    state = 0 # Start position 0
+
+    while state != 4:  # Goal is position 4
+        # Epsilon greedy action selection
+        if random.uniform(0, 1) < epsilon:  
+            action = random.randint(0, 1) # Explore: random action
         else:
-            reward = -0.1  # Small penalty for each step
-        
-        self.state = next_state
-        return next_state, reward, self.done
+            action = np.argmax(Q[state])  # Exploit: best known action
 
-def train_agent():
-    # Initialize Q-table
-    Q = np.zeros((NUM_POSITIONS, len(ACTIONS)))
-    
-    env = RoadCrossingEnv()
-    epsilon = EPSILON
-    
-    for episode in range(EPISODES):
-        state = env.reset()
-        done = False
-        total_reward = 0
-        
-        while not done:
-            # Epsilon-greedy action selection
-            if random.random() < epsilon:
-                action_idx = random.randint(0, 1)  # Random action
-            else:
-                action_idx = np.argmax(Q[state])
-            
-            action = ACTIONS[action_idx]
-            next_state, reward, done = env.step(action)
-            total_reward += reward
-            
-            # Q-learning update
-            best_next_action = np.argmax(Q[next_state])
-            td_target = reward + DISCOUNT * Q[next_state][best_next_action]
-            td_error = td_target - Q[state][action_idx]
-            Q[state][action_idx] += LEARNING_RATE * td_error
-            
-            state = next_state
-        
-        # Decay epsilon
-        epsilon = max(EPSILON_MIN, epsilon * EPSILON_DECAY)
-        
-        if episode % 100 == 0:
-            print(f"Episode: {episode}, Total Reward: {total_reward}, Epsilon: {epsilon:.2f}")
-    
-    return Q
+        # Take action
+        if action == 0:  # Move Left
+            next_state = max(0, state - 1)
+        else:  # Move Right
+            next_state = min(road_length - 1, state + 1)
 
-def demonstrate_sequence(Q):
-    print("\nDemonstrating the required action sequence [right, left, right]:")
-    env = RoadCrossingEnv()
-    state = env.reset()
-    actions_sequence = ['right', 'left', 'right']
-    
-    for step, action in enumerate(actions_sequence):
-        action_idx = ACTIONS.index(action)
-        next_state, reward, done = env.step(action)
-        
-        # Show agent's Q-values for current state
-        q_left, q_right = Q[state]
-        recommended_action = ACTIONS[np.argmax(Q[state])]
-        
-        print(f"Step {step + 1}:")
-        print(f"  Position: {state}")
-        print(f"  Forced Action: {action} (Q: {Q[state][action_idx]:.2f})")
-        print(f"  Agent's Q-values: Left={q_left:.2f}, Right={q_right:.2f}")
-        print(f"  Agent would choose: {recommended_action}")
-        print(f"  Next Position: {next_state}\n")
-        
+        # Reward
+        if next_state == 4:
+            reward = 10
+        else:
+            reward = -1
+
+        # Q-learning update
+        Q[state, action] += learning_rate * (reward + gamma * np.max(Q[next_state]) - Q[state, action])
+
         state = next_state
-    
-    print(f"Final Position after sequence: {state}")
-    if state == GOAL_POSITION:
-        print("Success! Reached the goal position.")
-    else:
-        print("Did not reach the goal position.")
 
-# Main execution
-if __name__ == "__main__":
-    print("Training RL agent...")
-    Q_table = train_agent()
-    
-    print("\nTrained Q-table:")
-    print(Q_table)
+# Show final Q-table after training
+print("\nFinal Q-table after training:")
+print(Q)
 
-    demonstrate_sequence(Q_table)
+# Demonstrate agent path with actions right, left, right
+print("\n Agent path with actions [right, left, right]:")
+
+state = 0  # Start from position 0
+actions_sequence = [1, 0, 1]  # 1: right, 0: left, 1: right
+
+for step, action in enumerate(actions_sequence):
+    if action == 0:  # Move Left
+        next_state = max(0, state - 1)
+        action_name = "Left"
+    else:  # Move Right
+        next_state = min(road_length - 1, state + 1)
+        action_name = "Right"
+    print(f"Step {step + 1}: Position {state} -> Action {action_name} -> Next Position {next_state}")
+    state = next_state
+
+print(f"Final Position after sequence: {state}")
