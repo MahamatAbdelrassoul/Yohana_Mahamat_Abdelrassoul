@@ -19,7 +19,7 @@ import asyncio
 from datetime import datetime
 from telegram import Bot
 
-# Replace with your bot token and chat ID
+#bot token and chat ID
 TELEGRAM_TOKEN = '7956501403:AAGing1ll16Ccx_WmkzMaso2niF6MdiYoCg'
 CHAT_ID = '5416115934'  # Can be group ID or user ID
 
